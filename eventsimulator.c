@@ -15,21 +15,19 @@ enum event_type {JOB_ARRIVED, CPU_FINISHED, DISK1_FINISHED, DISK2_FINISHED, NETW
 
 struct linked_list {
 	struct node {
-		union node_data {
+		union data {
 			int job_num; // for cpu, etc. queue
-			struct event { // for priority queue
-				int time;
-				enum event_type type;
-			} event_info;
-		} data;
+			enum event_type type; // for priority queue
+		} id;
+		int time;
 		struct node *next;
 	} *head, *tail;
 	int length;
 } event_pq, cpu_q, disk1_q, disk2_q, network_q;
 
-void enqueue(struct linked_list *q, int job_num); // for fifo queue
-void insert(struct linked_list *pq, int time, enum event_type type); // for event min pq
-union node_data pop(struct linked_list *q);
+void enqueue(struct linked_list *q, int job_num, int time); // for fifo queue
+void insert(struct linked_list *pq, enum event_type type, int time); // for event min pq
+struct node pop(struct linked_list *q);
 
 int main(int argc, char *argv[]) {
 	
@@ -60,134 +58,251 @@ int main(int argc, char *argv[]) {
 	
 	srand(SEED);
 	
+	// statistics
+	double cpu_re_total = 0, disk1_re_total = 0, disk2_re_total = 0, network_re_total = 0;
+	int cpu_max = 0, disk1_max = 0, disk2_max = 0, network_max = 0;
+	double cpu_busy = 0, disk1_busy = 0, disk2_busy = 0, network_busy = 0;
+	int cpu_re_max = 0, disk1_re_max = 0, disk2_re_max = 0, network_re_max = 0;
+	double cpu_jobs = 0, disk1_jobs = 0, disk2_jobs = 0, network_jobs = 0;
+	
 	// add arrival of first event
 	int job_num = 1;
-	insert(&event_pq, INIT_TIME, JOB_ARRIVED);
-	insert(&event_pq, FIN_TIME, SIMULATION_FINISHED);
+	insert(&event_pq, JOB_ARRIVED, INIT_TIME);
+	insert(&event_pq, SIMULATION_FINISHED, FIN_TIME);
 	
 	while (event_pq.length > 0) { // queue not empty
 		// read event
-		struct event data = pop(&event_pq).event_info;
+		struct node event = pop(&event_pq);
 		
 		// handle event
-		int job_id;
-		switch (data.type) {
+		struct node job;
+		int response, duration;
+		switch (event.id.type) {
 			
 			case JOB_ARRIVED :
-				printf("at time %d job %d arrived\n", data.time, job_num);
+				printf("at time %d job %d arrived\n", event.time, job_num);
 				
 				// send job to cpu
-				enqueue(&cpu_q, job_num++);
-				if (cpu_q.length == 1)
-					insert(&event_pq, rand() % (CPU_MAX-CPU_MIN+1) + CPU_MIN + data.time, CPU_FINISHED);
+				enqueue(&cpu_q, job_num++, event.time);
+				if (cpu_q.length == 1) {
+					duration = rand() % (CPU_MAX-CPU_MIN+1) + CPU_MIN;
+				    insert(&event_pq, CPU_FINISHED, duration + event.time);
+					cpu_busy += duration;
+				}
 				
 				// determine next arrival
-				insert(&event_pq, rand() % (ARRIVE_MAX-ARRIVE_MIN+1) + ARRIVE_MIN + data.time, JOB_ARRIVED);
+				insert(&event_pq, JOB_ARRIVED, rand() % (ARRIVE_MAX-ARRIVE_MIN+1) + ARRIVE_MIN + event.time);
 				break;
 				
 			case CPU_FINISHED : ;
-				job_id = pop(&cpu_q).job_num;
-				printf("at time %d job %d finished at the cpu\n", data.time, job_id);
+				job = pop(&cpu_q);
+				printf("at time %d job %d finished at the cpu\n", event.time, job.id.job_num);
+				
+				//update statistics
+				response = event.time-job.time;
+				cpu_re_total += response;
+				if (cpu_q.length+1 > cpu_max)
+					cpu_max = cpu_q.length+1;
+				if (response > cpu_re_max)
+					cpu_re_max = response;
+				cpu_jobs++;
 				
 				// job exits system
 				int prob = rand() % 100;
 				if (prob < 100*QUIT_PROB) {
-				    if (cpu_q.length >= 1)
-					    insert(&event_pq, rand() % (CPU_MAX-CPU_MIN+1) + CPU_MIN + data.time, CPU_FINISHED);
+				    if (cpu_q.length >= 1) {
+						duration = rand() % (CPU_MAX-CPU_MIN+1) + CPU_MIN;
+					    insert(&event_pq, CPU_FINISHED, duration + event.time);
+						cpu_busy += duration;
+					}
 					break;
 				}
 				
 				// job uses network
 				prob = rand() % 100;
 				if (prob < 100*NETWORK_PROB) {
-					enqueue(&network_q, job_id);
-					if (network_q.length == 1)
-						insert(&event_pq, rand() % (NETWORK_MAX-NETWORK_MIN+1) + NETWORK_MIN + data.time, NETWORK_FINISHED);
+					enqueue(&network_q, job.id.job_num, event.time);
+					if (network_q.length == 1) {
+						duration = rand() % (NETWORK_MAX-NETWORK_MIN+1) + NETWORK_MIN;
+						insert(&event_pq, NETWORK_FINISHED, duration + event.time);
+						network_busy += duration;
+					}
 				}
 				
 				// job does disk read
 				else if (disk1_q.length < disk2_q.length) {
-					enqueue(&disk1_q, job_id);
-					if (disk1_q.length == 1)
-						insert(&event_pq, rand() % (DISK1_MAX-DISK1_MIN+1) + DISK1_MIN + data.time, DISK1_FINISHED);
+					enqueue(&disk1_q, job.id.job_num, event.time);
+					if (disk1_q.length == 1) {
+						duration = rand() % (DISK1_MAX-DISK1_MIN+1) + DISK1_MIN;
+						insert(&event_pq, DISK1_FINISHED, duration + event.time);
+						disk1_busy += duration;
+					}
 				}
 				else if (disk1_q.length > disk2_q.length) {
-					enqueue(&disk2_q, job_id);
-					if (disk2_q.length == 1)
-						insert(&event_pq, rand() % (DISK2_MAX-DISK2_MIN+1) + DISK2_MIN + data.time, DISK2_FINISHED);
+					enqueue(&disk2_q, job.id.job_num, event.time);
+					if (disk2_q.length == 1) {
+						duration = rand() % (DISK2_MAX-DISK2_MIN+1) + DISK2_MIN;
+						insert(&event_pq, DISK2_FINISHED, duration + event.time);
+						disk2_busy += duration;
+					}
 				}
 				else {
 					prob = rand() % 2;
 					if (prob) {
-						enqueue(&disk1_q, job_id);
-						if (disk1_q.length == 1)
-							insert(&event_pq, rand() % (DISK1_MAX-DISK1_MIN+1) + DISK1_MIN + data.time, DISK1_FINISHED);
+						enqueue(&disk1_q, job.id.job_num, event.time);
+						if (disk1_q.length == 1) {
+							duration = rand() % (DISK1_MAX-DISK1_MIN+1) + DISK1_MIN;
+							insert(&event_pq, DISK1_FINISHED, duration + event.time);
+							disk1_busy += duration;
+						}
 					}
 					else {
-						enqueue(&disk2_q, job_id);
-						if (disk2_q.length == 1)
-							insert(&event_pq, rand() % (DISK2_MAX-DISK2_MIN+1) + DISK2_MIN + data.time, DISK2_FINISHED);
+						enqueue(&disk2_q, job.id.job_num, event.time);
+						if (disk2_q.length == 1) {
+							duration = rand() % (DISK2_MAX-DISK2_MIN+1) + DISK2_MIN;
+							insert(&event_pq, DISK2_FINISHED, duration + event.time);
+							disk2_busy += duration;
+						}
 					}
 				}
 				
 				// check for next job
-				if (cpu_q.length >= 1)
-					insert(&event_pq, rand() % (CPU_MAX-CPU_MIN+1) + CPU_MIN + data.time, CPU_FINISHED);
+				if (cpu_q.length >= 1) {
+					duration = rand() % (CPU_MAX-CPU_MIN+1) + CPU_MIN;
+				    insert(&event_pq, CPU_FINISHED, duration + event.time);
+					cpu_busy += duration;
+				}
 				break;
 				
 			case DISK1_FINISHED : ;
-				job_id = pop(&disk1_q).job_num;
-				printf("at time %d job %d finished at disk1\n", data.time, job_id);
+				job = pop(&disk1_q);
+				printf("at time %d job %d finished at disk1\n", event.time, job.id.job_num);
+				
+				//update statistics
+				response = event.time-job.time;
+				disk1_re_total += response;
+				if (disk1_q.length+1 > disk1_max)
+					disk1_max = disk1_q.length+1;
+				if (response > disk1_re_max)
+					disk1_re_max = response;
+				disk1_jobs++;
 				
 				// job goes to cpu
-				enqueue(&cpu_q, job_id);
-				if (cpu_q.length == 1)
-					insert(&event_pq, rand() % (CPU_MAX-CPU_MIN+1) + CPU_MIN + data.time, CPU_FINISHED);
+				enqueue(&cpu_q, job.id.job_num, event.time);
+				if (cpu_q.length == 1) {
+					duration = rand() % (CPU_MAX-CPU_MIN+1) + CPU_MIN;
+				    insert(&event_pq, CPU_FINISHED, duration + event.time);
+					cpu_busy += duration;
+				}
 				
 				// check for next job
-				if (disk1_q.length >= 1)
-					insert(&event_pq, rand() % (DISK1_MAX-DISK1_MIN+1) + DISK1_MIN + data.time, DISK1_FINISHED);
+				if (disk1_q.length >= 1) {
+					duration = rand() % (DISK1_MAX-DISK1_MIN+1) + DISK1_MIN;
+					insert(&event_pq, DISK1_FINISHED, duration + event.time);
+					disk1_busy += duration;
+				}
 				break;
 				
 			case DISK2_FINISHED : ;
-				job_id = pop(&disk2_q).job_num;
-				printf("at time %d job %d finished at disk2\n", data.time, job_id);
+				job = pop(&disk2_q);
+				printf("at time %d job %d finished at disk2\n", event.time, job.id.job_num);
+				
+				//update statistics
+				response = event.time-job.time;
+				disk2_re_total += response;
+				if (disk2_q.length+1 > disk2_max)
+					disk2_max = disk2_q.length+1;
+				if (response > disk2_re_max)
+					disk2_re_max = response;
+				disk2_jobs++;
 				
 				// job goes to cpu
-				enqueue(&cpu_q, job_id);
-				if (cpu_q.length == 1)
-					insert(&event_pq, rand() % (CPU_MAX-CPU_MIN+1) + CPU_MIN + data.time, CPU_FINISHED);
+				enqueue(&cpu_q, job.id.job_num, event.time);
+				if (cpu_q.length == 1) {
+					duration = rand() % (CPU_MAX-CPU_MIN+1) + CPU_MIN;
+				    insert(&event_pq, CPU_FINISHED, duration + event.time);
+					cpu_busy += duration;
+				}
 				
 				// check for next job
-				if (disk2_q.length >= 1)
-					insert(&event_pq, rand() % (DISK2_MAX-DISK2_MIN+1) + DISK2_MIN + data.time, DISK2_FINISHED);
+				if (disk2_q.length >= 1) {
+					duration = rand() % (DISK2_MAX-DISK2_MIN+1) + DISK2_MIN;
+					insert(&event_pq, DISK2_FINISHED, duration + event.time);
+					disk2_busy += duration;
+				}
 				break;
 				
 			case NETWORK_FINISHED : ;
-				job_id = pop(&network_q).job_num;
-				printf("at time %d job %d finished at the network\n", data.time, job_id);
+				job = pop(&network_q);
+				printf("at time %d job %d finished at the network\n", event.time, job.id.job_num);
+				
+				//update statistics
+				response = event.time-job.time;
+				network_re_total += response;
+				if (network_q.length+1 > network_max)
+					network_max = network_q.length+1;
+				if (response > network_re_max)
+					network_re_max = response;
+				network_jobs++;
 				
 				// job goes to cpu
-				enqueue(&cpu_q, job_id);
-				if (cpu_q.length == 1)
-					insert(&event_pq, rand() % (CPU_MAX-CPU_MIN+1) + CPU_MIN + data.time, CPU_FINISHED);
+				enqueue(&cpu_q, job.id.job_num, event.time);
+				if (cpu_q.length == 1) {
+					duration = rand() % (CPU_MAX-CPU_MIN+1) + CPU_MIN;
+				    insert(&event_pq, CPU_FINISHED, duration + event.time);
+					cpu_busy += duration;
+				}
 				
 				// check for next job
-				if (network_q.length >= 1)
-					insert(&event_pq, rand() % (NETWORK_MAX-NETWORK_MIN+1) + NETWORK_MIN + data.time, NETWORK_FINISHED);
+				if (network_q.length >= 1) {
+					duration = rand() % (NETWORK_MAX-NETWORK_MIN+1) + NETWORK_MIN;
+					insert(&event_pq, NETWORK_FINISHED, duration + event.time);
+					network_busy += duration;
+				}
 				break;
 				
 			case SIMULATION_FINISHED :
-				printf("at time %d simulation finished\n", data.time);
+				printf("at time %d simulation finished\n", event.time);
+				
+				int sim_time = FIN_TIME-INIT_TIME;
+				puts("\nCPU:\n========================\n");
+				printf("Average Queue Size: %f\n", cpu_re_total/sim_time);
+				printf("Maximum Queue Size: %d\n", cpu_max);
+				printf("Ulitilization: %f\n", cpu_busy/sim_time);
+				printf("Average Response Time: %f\n", cpu_re_total/cpu_jobs);
+				printf("Maximum Response Time: %d\n", cpu_re_max);
+				printf("Throughput: %f\n", cpu_jobs/sim_time);
+				puts("\nDISK1:\n========================\n");
+				printf("Average Queue Size: %f\n", disk1_re_total/sim_time);
+				printf("Maximum Queue Size: %d\n", disk1_max);
+				printf("Ulitilization: %f\n", disk1_busy/sim_time);
+				printf("Average Response Time: %f\n", disk1_re_total/disk1_jobs);
+				printf("Maximum Response Time: %d\n", disk1_re_max);
+				printf("Throughput: %f\n", disk1_jobs/sim_time);
+				puts("\nDISK2:\n========================\n");
+				printf("Average Queue Size: %f\n", disk2_re_total/sim_time);
+				printf("Maximum Queue Size: %d\n", disk2_max);
+				printf("Ulitilization: %f\n", disk2_busy/sim_time);
+				printf("Average Response Time: %f\n", disk2_re_total/disk2_jobs);
+				printf("Maximum Response Time: %d\n", disk2_re_max);
+				printf("Throughput: %f\n", disk2_jobs/sim_time);
+				puts("\nNETWORK:\n========================\n");
+				printf("Average Queue Size: %f\n", network_re_total/sim_time);
+				printf("Maximum Queue Size: %d\n", network_max);
+				printf("Ulitilization: %f\n", network_busy/sim_time);
+				printf("Average Response Time: %f\n", network_re_total/network_jobs);
+				printf("Maximum Response Time: %d\n", network_re_max);
+				printf("Throughput: %f\n", network_jobs/sim_time);
+				
 				exit(0);
 		}
 	}
-	exit(0);
 }
 
-void enqueue(struct linked_list *q, int job_num) {
+void enqueue(struct linked_list *q, int job_num, int time) {
 	struct node *new_node = (struct node *) malloc(sizeof(struct node));
-	new_node->data.job_num = job_num;
+	new_node->id.job_num = job_num;
+	new_node->time = time;
 	new_node->next = NULL;
 	if (q->head == NULL) {
 		q->head = new_node;
@@ -201,24 +316,24 @@ void enqueue(struct linked_list *q, int job_num) {
 	}
 }
 
-void insert(struct linked_list *pq, int time, enum event_type type) {
+void insert(struct linked_list *pq, enum event_type type, int time) {
 	struct node *new_node = (struct node *) malloc(sizeof(struct node));
-	new_node->data.event_info.time = time;
-	new_node->data.event_info.type = type;
+	new_node->id.type = type;
+	new_node->time = time;
 	new_node->next = NULL;
 	if (pq->head == NULL) { // no elements in list
 		pq->head = new_node;
 		pq->tail = new_node;
 		pq->length = 1;
 	}
-	else if (time < pq->head->data.event_info.time) { // new element in head of pq
+	else if (time < pq->head->time) { // new element in head of pq
 		new_node->next = pq->head;
 		pq->head = new_node;
 		pq->length++;
 	}
 	else { // new element is somewhere else
 		struct node *current_node = pq->head;
-		while (current_node->next != NULL && time > current_node->next->data.event_info.time) {
+		while (current_node->next != NULL && time > current_node->next->time) {
 			current_node = current_node->next;
 		}
 		// current node is now the node before where the new node should go
@@ -230,8 +345,8 @@ void insert(struct linked_list *pq, int time, enum event_type type) {
 	}
 }
 
-union node_data pop(struct linked_list *q) {
-	union node_data data = q->head->data;
+struct node pop(struct linked_list *q) {
+	struct node popped = *(q->head);
 	if (q->head == q->tail) {
 		free(q->head);
 		q->head = q->tail = NULL;
@@ -242,5 +357,5 @@ union node_data pop(struct linked_list *q) {
 		q->head = next;
 	}
 	q->length--;
-	return data;
+	return popped;
 }
