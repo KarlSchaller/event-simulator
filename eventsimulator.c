@@ -109,6 +109,7 @@ int main(int argc, char *argv[]) {
 					duration = rand() % (CPU_MAX-CPU_MIN+1) + CPU_MIN;
 				    insert(&event_pq, CPU_FINISHED, duration + event.time);
 					cpu_busy += duration;
+					fprintf(fp, "At time %d, Job %d enters the CPU.\n", event.time, job_num-1);
 				}
 				
 				// determine next arrival
@@ -131,7 +132,9 @@ int main(int argc, char *argv[]) {
 				// job exits system
 				int prob = rand() % 100;
 				if (prob < 100*QUIT_PROB) {
+					fprintf(fp, "At time %d, Job %d exits the system.\n", event.time, job.id.job_num);
 				    if (cpu_q.length >= 1) {
+						fprintf(fp, "At time %d, Job %d enters the CPU.\n", event.time, cpu_q.head->id.job_num);
 						duration = rand() % (CPU_MAX-CPU_MIN+1) + CPU_MIN;
 					    insert(&event_pq, CPU_FINISHED, duration + event.time);
 						cpu_busy += duration;
@@ -144,6 +147,7 @@ int main(int argc, char *argv[]) {
 				if (prob < 100*NETWORK_PROB) {
 					enqueue(&network_q, job.id.job_num, event.time);
 					if (network_q.length == 1) {
+						fprintf(fp, "At time %d, Job %d enters the Network.\n", event.time, job.id.job_num);
 						duration = rand() % (NETWORK_MAX-NETWORK_MIN+1) + NETWORK_MIN;
 						insert(&event_pq, NETWORK_FINISHED, duration + event.time);
 						network_busy += duration;
@@ -154,6 +158,7 @@ int main(int argc, char *argv[]) {
 				else if (disk1_q.length < disk2_q.length) {
 					enqueue(&disk1_q, job.id.job_num, event.time);
 					if (disk1_q.length == 1) {
+						fprintf(fp, "At time %d, Job %d enters Disk 1.\n", event.time, job.id.job_num);
 						duration = rand() % (DISK1_MAX-DISK1_MIN+1) + DISK1_MIN;
 						insert(&event_pq, DISK1_FINISHED, duration + event.time);
 						disk1_busy += duration;
@@ -162,6 +167,7 @@ int main(int argc, char *argv[]) {
 				else if (disk1_q.length > disk2_q.length) {
 					enqueue(&disk2_q, job.id.job_num, event.time);
 					if (disk2_q.length == 1) {
+						fprintf(fp, "At time %d, Job %d enters Disk 2.\n", event.time, job.id.job_num);
 						duration = rand() % (DISK2_MAX-DISK2_MIN+1) + DISK2_MIN;
 						insert(&event_pq, DISK2_FINISHED, duration + event.time);
 						disk2_busy += duration;
@@ -172,6 +178,7 @@ int main(int argc, char *argv[]) {
 					if (prob) {
 						enqueue(&disk1_q, job.id.job_num, event.time);
 						if (disk1_q.length == 1) {
+							fprintf(fp, "At time %d, Job %d enters Disk 1.\n", event.time, job.id.job_num);
 							duration = rand() % (DISK1_MAX-DISK1_MIN+1) + DISK1_MIN;
 							insert(&event_pq, DISK1_FINISHED, duration + event.time);
 							disk1_busy += duration;
@@ -180,6 +187,7 @@ int main(int argc, char *argv[]) {
 					else {
 						enqueue(&disk2_q, job.id.job_num, event.time);
 						if (disk2_q.length == 1) {
+							fprintf(fp, "At time %d, Job %d enters Disk 2.\n", event.time, job.id.job_num);
 							duration = rand() % (DISK2_MAX-DISK2_MIN+1) + DISK2_MIN;
 							insert(&event_pq, DISK2_FINISHED, duration + event.time);
 							disk2_busy += duration;
@@ -189,6 +197,7 @@ int main(int argc, char *argv[]) {
 				
 				// check for next job
 				if (cpu_q.length >= 1) {
+					fprintf(fp, "At time %d, Job %d enters the CPU.\n", event.time, cpu_q.head->id.job_num);
 					duration = rand() % (CPU_MAX-CPU_MIN+1) + CPU_MIN;
 				    insert(&event_pq, CPU_FINISHED, duration + event.time);
 					cpu_busy += duration;
@@ -211,6 +220,7 @@ int main(int argc, char *argv[]) {
 				// job goes to cpu
 				enqueue(&cpu_q, job.id.job_num, event.time);
 				if (cpu_q.length == 1) {
+					fprintf(fp, "At time %d, Job %d enters the CPU.\n", event.time, job.id.job_num);
 					duration = rand() % (CPU_MAX-CPU_MIN+1) + CPU_MIN;
 				    insert(&event_pq, CPU_FINISHED, duration + event.time);
 					cpu_busy += duration;
@@ -218,6 +228,7 @@ int main(int argc, char *argv[]) {
 				
 				// check for next job
 				if (disk1_q.length >= 1) {
+					fprintf(fp, "At time %d, Job %d enters Disk 1.\n", event.time, disk1_q.head->id.job_num);
 					duration = rand() % (DISK1_MAX-DISK1_MIN+1) + DISK1_MIN;
 					insert(&event_pq, DISK1_FINISHED, duration + event.time);
 					disk1_busy += duration;
@@ -240,6 +251,7 @@ int main(int argc, char *argv[]) {
 				// job goes to cpu
 				enqueue(&cpu_q, job.id.job_num, event.time);
 				if (cpu_q.length == 1) {
+					fprintf(fp, "At time %d, Job %d enters the CPU.\n", event.time, job.id.job_num);
 					duration = rand() % (CPU_MAX-CPU_MIN+1) + CPU_MIN;
 				    insert(&event_pq, CPU_FINISHED, duration + event.time);
 					cpu_busy += duration;
@@ -247,6 +259,7 @@ int main(int argc, char *argv[]) {
 				
 				// check for next job
 				if (disk2_q.length >= 1) {
+					fprintf(fp, "At time %d, Job %d enters Disk 2.\n", event.time, disk2_q.head->id.job_num);
 					duration = rand() % (DISK2_MAX-DISK2_MIN+1) + DISK2_MIN;
 					insert(&event_pq, DISK2_FINISHED, duration + event.time);
 					disk2_busy += duration;
@@ -269,6 +282,7 @@ int main(int argc, char *argv[]) {
 				// job goes to cpu
 				enqueue(&cpu_q, job.id.job_num, event.time);
 				if (cpu_q.length == 1) {
+					fprintf(fp, "At time %d, Job %d enters the CPU.\n", event.time, job.id.job_num);
 					duration = rand() % (CPU_MAX-CPU_MIN+1) + CPU_MIN;
 				    insert(&event_pq, CPU_FINISHED, duration + event.time);
 					cpu_busy += duration;
@@ -276,6 +290,7 @@ int main(int argc, char *argv[]) {
 				
 				// check for next job
 				if (network_q.length >= 1) {
+					fprintf(fp, "At time %d, Job %d enters the Network.\n", event.time, network_q.head->id.job_num);
 					duration = rand() % (NETWORK_MAX-NETWORK_MIN+1) + NETWORK_MIN;
 					insert(&event_pq, NETWORK_FINISHED, duration + event.time);
 					network_busy += duration;
@@ -283,7 +298,7 @@ int main(int argc, char *argv[]) {
 				break;
 				
 			case SIMULATION_FINISHED :
-				fprintf(fp, "At time %d, Simulation Finished.\n", event.time);
+				fprintf(fp, "At time %d, simulation finished.\n", event.time);
 				
 				int sim_time = FIN_TIME-INIT_TIME;
 				puts("CPU:\n========================\n");
