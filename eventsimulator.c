@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
 	// read txt config
 	FILE *fp = fopen(argv[1], "r");
 	if (fp == NULL) {
-		puts("eventsimulator: cannot open file");
+		puts("eventsimulator: cannot open config");
 		exit(1);
 	}
 	char buffer[32];
@@ -55,8 +55,28 @@ int main(int argc, char *argv[]) {
 	const int NETWORK_MIN = atoi(fgets(buffer, 32, fp) + 12);
 	const int NETWORK_MAX = atoi(fgets(buffer, 32, fp) + 12);
 	fclose(fp);
-	
 	srand(SEED);
+	fp = fopen("log.txt", "w");
+	if (fp == NULL) {
+		puts("eventsimulator: cannot open log");
+		exit(1);
+	}
+	fprintf(fp, "SEED %d\n", SEED);
+	fprintf(fp, "INIT_TIME %d\n", INIT_TIME);
+	fprintf(fp, "FIN_TIME %d\n", FIN_TIME);
+	fprintf(fp, "ARRIVE_MIN %d\n", ARRIVE_MIN);
+	fprintf(fp, "ARRIVE_MAX %d\n", ARRIVE_MAX);
+	fprintf(fp, "QUIT_PROB %f\n", QUIT_PROB);
+	fprintf(fp, "NETWORK_PROB %f\n", NETWORK_PROB);
+	fprintf(fp, "CPU_MIN %d\n", CPU_MIN);
+	fprintf(fp, "CPU_MAX %d\n", CPU_MAX);
+	fprintf(fp, "DISK1_MIN %d\n", DISK1_MIN);
+	fprintf(fp, "DISK1_MAX %d\n", DISK1_MAX);
+	fprintf(fp, "DISK2_MIN %d\n", DISK2_MIN);
+	fprintf(fp, "DISK2_MAX %d\n", DISK2_MAX);
+	fprintf(fp, "NETWORK_MIN %d\n", NETWORK_MIN);
+	fprintf(fp, "NETWORK_MAX %d\n", NETWORK_MAX);
+	
 	
 	// statistics
 	double cpu_re_total = 0, disk1_re_total = 0, disk2_re_total = 0, network_re_total = 0;
@@ -70,7 +90,8 @@ int main(int argc, char *argv[]) {
 	insert(&event_pq, JOB_ARRIVED, INIT_TIME);
 	insert(&event_pq, SIMULATION_FINISHED, FIN_TIME);
 	
-	while (event_pq.length > 0) { // queue not empty
+	while (event_pq.length > 0) { // will go until SIMULATION_FINISHED event
+		
 		// read event
 		struct node event = pop(&event_pq);
 		
@@ -80,7 +101,7 @@ int main(int argc, char *argv[]) {
 		switch (event.id.type) {
 			
 			case JOB_ARRIVED :
-				printf("at time %d job %d arrived\n", event.time, job_num);
+				fprintf(fp, "At time %d, Job %d arrives.\n", event.time, job_num);
 				
 				// send job to cpu
 				enqueue(&cpu_q, job_num++, event.time);
@@ -96,7 +117,7 @@ int main(int argc, char *argv[]) {
 				
 			case CPU_FINISHED : ;
 				job = pop(&cpu_q);
-				printf("at time %d job %d finished at the cpu\n", event.time, job.id.job_num);
+				fprintf(fp, "At time %d, Job %d finishes in the CPU.\n", event.time, job.id.job_num);
 				
 				//update statistics
 				response = event.time-job.time;
@@ -176,7 +197,7 @@ int main(int argc, char *argv[]) {
 				
 			case DISK1_FINISHED : ;
 				job = pop(&disk1_q);
-				printf("at time %d job %d finished at disk1\n", event.time, job.id.job_num);
+				fprintf(fp, "At time %d, Job %d finishes in Disk 1.\n", event.time, job.id.job_num);
 				
 				//update statistics
 				response = event.time-job.time;
@@ -205,7 +226,7 @@ int main(int argc, char *argv[]) {
 				
 			case DISK2_FINISHED : ;
 				job = pop(&disk2_q);
-				printf("at time %d job %d finished at disk2\n", event.time, job.id.job_num);
+				fprintf(fp, "At time %d, Job %d finishes in Disk 2.\n", event.time, job.id.job_num);
 				
 				//update statistics
 				response = event.time-job.time;
@@ -234,7 +255,7 @@ int main(int argc, char *argv[]) {
 				
 			case NETWORK_FINISHED : ;
 				job = pop(&network_q);
-				printf("at time %d job %d finished at the network\n", event.time, job.id.job_num);
+				fprintf(fp, "At time %d, Job %d finishes in the Network.\n", event.time, job.id.job_num);
 				
 				//update statistics
 				response = event.time-job.time;
@@ -262,10 +283,10 @@ int main(int argc, char *argv[]) {
 				break;
 				
 			case SIMULATION_FINISHED :
-				printf("at time %d simulation finished\n", event.time);
+				fprintf(fp, "At time %d, Simulation Finished.\n", event.time);
 				
 				int sim_time = FIN_TIME-INIT_TIME;
-				puts("\nCPU:\n========================\n");
+				puts("CPU:\n========================\n");
 				printf("Average Queue Size: %f\n", cpu_re_total/sim_time);
 				printf("Maximum Queue Size: %d\n", cpu_max);
 				printf("Ulitilization: %f\n", cpu_busy/sim_time);
@@ -294,6 +315,7 @@ int main(int argc, char *argv[]) {
 				printf("Maximum Response Time: %d\n", network_re_max);
 				printf("Throughput: %f\n", network_jobs/sim_time);
 				
+				fclose(fp);
 				exit(0);
 		}
 	}
