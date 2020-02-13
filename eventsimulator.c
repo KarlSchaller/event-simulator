@@ -35,45 +35,38 @@ int main(int argc, char *argv[]) {
 	
 	
 	// read txt config
-	const int SEED = 12345;
-	const int INIT_TIME = 0;
-	const int FIN_TIME = 10000;
-	const int ARRIVE_MIN = 10;
-	const int ARRIVE_MAX = 50;
-	const float QUIT_PROB = 0.2;
-	const float NETWORK_PROB = 0.3;
-	const int CPU_MIN = 10;
-	const int CPU_MAX = 50;
-	const int DISK1_MIN = 10;
-	const int DISK1_MAX = 50;
-	const int DISK2_MIN = 10;
-	const int DISK2_MAX = 50;
-	const int NETWORK_MIN = 10;
-	const int NETWORK_MAX = 50;
-	puts("config closed");
+	FILE *fp = fopen(argv[1], "r");
+	if (fp == NULL) {
+		puts("eventsimulator: cannot open file");
+		exit(1);
+	}
+	char buffer[32];
+	const int SEED = atoi(fgets(buffer, 32, fp) + 5);
+	const int INIT_TIME = atoi(fgets(buffer, 32, fp) + 10);
+	const int FIN_TIME = atoi(fgets(buffer, 32, fp) + 9);
+	const int ARRIVE_MIN = atoi(fgets(buffer, 32, fp) + 11);
+	const int ARRIVE_MAX = atoi(fgets(buffer, 32, fp) + 11);
+	const float QUIT_PROB = atof(fgets(buffer, 32, fp) + 10);
+	const float NETWORK_PROB = atof(fgets(buffer, 32, fp) + 13);
+	const int CPU_MIN = atoi(fgets(buffer, 32, fp) + 8);
+	const int CPU_MAX = atoi(fgets(buffer, 32, fp) + 8);
+	const int DISK1_MIN = atoi(fgets(buffer, 32, fp) + 10);
+	const int DISK1_MAX = atoi(fgets(buffer, 32, fp) + 10);
+	const int DISK2_MIN = atoi(fgets(buffer, 32, fp) + 10);
+	const int DISK2_MAX = atoi(fgets(buffer, 32, fp) + 10);
+	const int NETWORK_MIN = atoi(fgets(buffer, 32, fp) + 12);
+	const int NETWORK_MAX = atoi(fgets(buffer, 32, fp) + 12);
+	fclose(fp);
 	
 	srand(SEED);
 	
 	// add arrival of first event
 	int job_num = 1;
 	insert(&event_pq, INIT_TIME, JOB_ARRIVED);
-	//puts("insert");
 	insert(&event_pq, FIN_TIME, SIMULATION_FINISHED);
-	//puts("insert");
-	/*printf("%d", pop(&event_pq).event_info.time);
-	puts("pop");
-	printf("%d", pop(&event_pq).event_info.time);
-	puts("pop");*/
 	
-	for (int i = 0; i < 50; i++) {
-	//while (event_pq.length > 0) { // queue not empty
+	while (event_pq.length > 0) { // queue not empty
 		// read event
-		struct node *test = event_pq.head;
-		while (test != NULL) {
-		    printf("%d time %d ; ", test->data.event_info.type, test->data.event_info.time);
-		    test = test->next;
-		}
-		puts("");
 		struct event data = pop(&event_pq).event_info;
 		
 		// handle event
@@ -84,23 +77,15 @@ int main(int argc, char *argv[]) {
 				printf("at time %d job %d arrived\n", data.time, job_num);
 				
 				// send job to cpu
-				enqueue(&cpu_q, job_num++); //puts("queued to cpu");
+				enqueue(&cpu_q, job_num++);
+				if (cpu_q.length == 1)
+					insert(&event_pq, rand() % (CPU_MAX-CPU_MIN+1) + CPU_MIN + data.time, CPU_FINISHED);
 				
-				if (cpu_q.length == 1) {
-					insert(&event_pq, rand() % (CPU_MAX-CPU_MIN+1) + CPU_MIN + data.time, CPU_FINISHED); //puts("cpu started");
-				}
 				// determine next arrival
-				insert(&event_pq, rand() % (ARRIVE_MAX-ARRIVE_MIN+1) + ARRIVE_MIN + data.time, JOB_ARRIVED); //puts("next job arrival queued");
+				insert(&event_pq, rand() % (ARRIVE_MAX-ARRIVE_MIN+1) + ARRIVE_MIN + data.time, JOB_ARRIVED);
 				break;
 				
 			case CPU_FINISHED : ;
-				test = cpu_q.head;
-				printf("CPU: ");
-		        while (test != NULL) {
-		            printf(" %d ; ", test->data.job_num);
-		            test = test->next;
-		        }
-		        printf("%d\n", cpu_q.length);
 				job_id = pop(&cpu_q).job_num;
 				printf("at time %d job %d finished at the cpu\n", data.time, job_id);
 				
@@ -151,13 +136,6 @@ int main(int argc, char *argv[]) {
 				break;
 				
 			case DISK1_FINISHED : ;
-			    test = disk1_q.head;
-				printf("DISK1: ");
-		        while (test != NULL) {
-		            printf(" %d ; ", test->data.job_num);
-		            test = test->next;
-		        }
-		        printf("%d\n", disk1_q.length);
 				job_id = pop(&disk1_q).job_num;
 				printf("at time %d job %d finished at disk1\n", data.time, job_id);
 				
@@ -172,13 +150,6 @@ int main(int argc, char *argv[]) {
 				break;
 				
 			case DISK2_FINISHED : ;
-			    test = disk2_q.head;
-				printf("DISK2: ");
-		        while (test != NULL) {
-		            printf(" %d ; ", test->data.job_num);
-		            test = test->next;
-		        }
-		        printf("%d\n", disk2_q.length);
 				job_id = pop(&disk2_q).job_num;
 				printf("at time %d job %d finished at disk2\n", data.time, job_id);
 				
@@ -193,13 +164,6 @@ int main(int argc, char *argv[]) {
 				break;
 				
 			case NETWORK_FINISHED : ;
-			    test = network_q.head;
-				printf("NETWORK: ");
-		        while (test != NULL) {
-		            printf(" %d ; ", test->data.job_num);
-		            test = test->next;
-		        }
-		        printf("%d\n", network_q.length);
 				job_id = pop(&network_q).job_num;
 				printf("at time %d job %d finished at the network\n", data.time, job_id);
 				
@@ -216,8 +180,6 @@ int main(int argc, char *argv[]) {
 			case SIMULATION_FINISHED :
 				printf("at time %d simulation finished\n", data.time);
 				exit(0);
-				
-			default: puts("default case"); break;
 		}
 	}
 	exit(0);
@@ -264,7 +226,7 @@ void insert(struct linked_list *pq, int time, enum event_type type) {
 		current_node->next = new_node;
 		pq->length++;
 		if (new_node->next == NULL)
-		    pq->tail = new_node;
+			pq->tail = new_node;
 	}
 }
 
