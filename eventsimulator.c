@@ -79,8 +79,8 @@ int main(int argc, char *argv[]) {
 	
 	
 	// statistics
-	double cpu_re_total = 0, disk1_re_total = 0, disk2_re_total = 0, network_re_total = 0;
-	int cpu_max = 0, disk1_max = 0, disk2_max = 0, network_max = 0;
+	double event_re_total = 0, cpu_re_total = 0, disk1_re_total = 0, disk2_re_total = 0, network_re_total = 0;
+	int event_max = 0, cpu_max = 0, disk1_max = 0, disk2_max = 0, network_max = 0;
 	double cpu_busy = 0, disk1_busy = 0, disk2_busy = 0, network_busy = 0;
 	int cpu_re_max = 0, disk1_re_max = 0, disk2_re_max = 0, network_re_max = 0;
 	double cpu_jobs = 0, disk1_jobs = 0, disk2_jobs = 0, network_jobs = 0;
@@ -93,6 +93,8 @@ int main(int argc, char *argv[]) {
 	while (event_pq.length > 0) { // will go until SIMULATION_FINISHED event
 		
 		// read event
+		if (event_pq.length > event_max)
+			event_max = event_pq.length;
 		struct node event = pop(&event_pq);
 		
 		// handle event
@@ -109,11 +111,14 @@ int main(int argc, char *argv[]) {
 					duration = rand() % (CPU_MAX-CPU_MIN+1) + CPU_MIN;
 				    insert(&event_pq, CPU_FINISHED, duration + event.time);
 					cpu_busy += duration;
+					event_re_total += duration;
 					fprintf(fp, "At time %d, Job %d enters the CPU.\n", event.time, job_num-1);
 				}
 				
 				// determine next arrival
-				insert(&event_pq, JOB_ARRIVED, rand() % (ARRIVE_MAX-ARRIVE_MIN+1) + ARRIVE_MIN + event.time);
+				duration = rand() % (ARRIVE_MAX-ARRIVE_MIN+1) + ARRIVE_MIN;
+				insert(&event_pq, JOB_ARRIVED, duration + event.time);
+				event_re_total += duration;
 				break;
 				
 			case CPU_FINISHED : ;
@@ -138,6 +143,7 @@ int main(int argc, char *argv[]) {
 						duration = rand() % (CPU_MAX-CPU_MIN+1) + CPU_MIN;
 					    insert(&event_pq, CPU_FINISHED, duration + event.time);
 						cpu_busy += duration;
+						event_re_total += duration;
 					}
 					break;
 				}
@@ -151,6 +157,7 @@ int main(int argc, char *argv[]) {
 						duration = rand() % (NETWORK_MAX-NETWORK_MIN+1) + NETWORK_MIN;
 						insert(&event_pq, NETWORK_FINISHED, duration + event.time);
 						network_busy += duration;
+						event_re_total += duration;
 					}
 				}
 				
@@ -162,6 +169,7 @@ int main(int argc, char *argv[]) {
 						duration = rand() % (DISK1_MAX-DISK1_MIN+1) + DISK1_MIN;
 						insert(&event_pq, DISK1_FINISHED, duration + event.time);
 						disk1_busy += duration;
+						event_re_total += duration;
 					}
 				}
 				else if (disk1_q.length > disk2_q.length) {
@@ -171,6 +179,7 @@ int main(int argc, char *argv[]) {
 						duration = rand() % (DISK2_MAX-DISK2_MIN+1) + DISK2_MIN;
 						insert(&event_pq, DISK2_FINISHED, duration + event.time);
 						disk2_busy += duration;
+						event_re_total += duration;
 					}
 				}
 				else {
@@ -182,6 +191,7 @@ int main(int argc, char *argv[]) {
 							duration = rand() % (DISK1_MAX-DISK1_MIN+1) + DISK1_MIN;
 							insert(&event_pq, DISK1_FINISHED, duration + event.time);
 							disk1_busy += duration;
+							event_re_total += duration;
 						}
 					}
 					else {
@@ -191,6 +201,7 @@ int main(int argc, char *argv[]) {
 							duration = rand() % (DISK2_MAX-DISK2_MIN+1) + DISK2_MIN;
 							insert(&event_pq, DISK2_FINISHED, duration + event.time);
 							disk2_busy += duration;
+							event_re_total += duration;
 						}
 					}
 				}
@@ -201,6 +212,7 @@ int main(int argc, char *argv[]) {
 					duration = rand() % (CPU_MAX-CPU_MIN+1) + CPU_MIN;
 				    insert(&event_pq, CPU_FINISHED, duration + event.time);
 					cpu_busy += duration;
+					event_re_total += duration;
 				}
 				break;
 				
@@ -224,6 +236,7 @@ int main(int argc, char *argv[]) {
 					duration = rand() % (CPU_MAX-CPU_MIN+1) + CPU_MIN;
 				    insert(&event_pq, CPU_FINISHED, duration + event.time);
 					cpu_busy += duration;
+					event_re_total += duration;
 				}
 				
 				// check for next job
@@ -232,6 +245,7 @@ int main(int argc, char *argv[]) {
 					duration = rand() % (DISK1_MAX-DISK1_MIN+1) + DISK1_MIN;
 					insert(&event_pq, DISK1_FINISHED, duration + event.time);
 					disk1_busy += duration;
+					event_re_total += duration;
 				}
 				break;
 				
@@ -255,6 +269,7 @@ int main(int argc, char *argv[]) {
 					duration = rand() % (CPU_MAX-CPU_MIN+1) + CPU_MIN;
 				    insert(&event_pq, CPU_FINISHED, duration + event.time);
 					cpu_busy += duration;
+					event_re_total += duration;
 				}
 				
 				// check for next job
@@ -263,6 +278,7 @@ int main(int argc, char *argv[]) {
 					duration = rand() % (DISK2_MAX-DISK2_MIN+1) + DISK2_MIN;
 					insert(&event_pq, DISK2_FINISHED, duration + event.time);
 					disk2_busy += duration;
+					event_re_total += duration;
 				}
 				break;
 				
@@ -286,6 +302,7 @@ int main(int argc, char *argv[]) {
 					duration = rand() % (CPU_MAX-CPU_MIN+1) + CPU_MIN;
 				    insert(&event_pq, CPU_FINISHED, duration + event.time);
 					cpu_busy += duration;
+					event_re_total += duration;
 				}
 				
 				// check for next job
@@ -294,6 +311,7 @@ int main(int argc, char *argv[]) {
 					duration = rand() % (NETWORK_MAX-NETWORK_MIN+1) + NETWORK_MIN;
 					insert(&event_pq, NETWORK_FINISHED, duration + event.time);
 					network_busy += duration;
+					event_re_total += duration;
 				}
 				break;
 				
@@ -301,28 +319,31 @@ int main(int argc, char *argv[]) {
 				fprintf(fp, "At time %d, simulation finished.\n", event.time);
 				
 				int sim_time = FIN_TIME-INIT_TIME;
-				puts("CPU:\n========================\n");
+				puts("EVENT HANDLER:\n========================");
+				printf("Average Queue Size: %f\n", event_re_total/sim_time);
+				printf("Maximum Queue Size: %d\n", event_max);
+				puts("\nCPU:\n========================");
 				printf("Average Queue Size: %f\n", cpu_re_total/sim_time);
 				printf("Maximum Queue Size: %d\n", cpu_max);
 				printf("Ulitilization: %f\n", cpu_busy/sim_time);
 				printf("Average Response Time: %f\n", cpu_re_total/cpu_jobs);
 				printf("Maximum Response Time: %d\n", cpu_re_max);
 				printf("Throughput: %f\n", cpu_jobs/sim_time);
-				puts("\nDISK1:\n========================\n");
+				puts("\nDISK1:\n========================");
 				printf("Average Queue Size: %f\n", disk1_re_total/sim_time);
 				printf("Maximum Queue Size: %d\n", disk1_max);
 				printf("Ulitilization: %f\n", disk1_busy/sim_time);
 				printf("Average Response Time: %f\n", disk1_re_total/disk1_jobs);
 				printf("Maximum Response Time: %d\n", disk1_re_max);
 				printf("Throughput: %f\n", disk1_jobs/sim_time);
-				puts("\nDISK2:\n========================\n");
+				puts("\nDISK2:\n========================");
 				printf("Average Queue Size: %f\n", disk2_re_total/sim_time);
 				printf("Maximum Queue Size: %d\n", disk2_max);
 				printf("Ulitilization: %f\n", disk2_busy/sim_time);
 				printf("Average Response Time: %f\n", disk2_re_total/disk2_jobs);
 				printf("Maximum Response Time: %d\n", disk2_re_max);
 				printf("Throughput: %f\n", disk2_jobs/sim_time);
-				puts("\nNETWORK:\n========================\n");
+				puts("\nNETWORK:\n========================");
 				printf("Average Queue Size: %f\n", network_re_total/sim_time);
 				printf("Maximum Queue Size: %d\n", network_max);
 				printf("Ulitilization: %f\n", network_busy/sim_time);
