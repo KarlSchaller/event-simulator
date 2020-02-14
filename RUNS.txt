@@ -1,0 +1,21 @@
+Karl Schaller 915580340
+
+Our config file has the following settings
+
+SEED 12345
+INIT_TIME 0
+FIN_TIME 50000
+ARRIVE_MIN 5
+ARRIVE_MAX 50
+QUIT_PROB 0.2
+NETWORK_PROB 0.3
+CPU_MIN 3
+CPU_MAX 12
+DISK1_MIN 10
+DISK1_MAX 50
+DISK2_MIN 10
+DISK2_MAX 50
+NETWORK_MIN 10
+NETWORK_MAX 50
+
+The specs gave quit probability, network probability, and arrival time as samples. Next, we set out have at least 1000 job arrivals in our simulation; with a higher sample size, more accurate and reliable statistics will be generated, so we set the duration of the simulation to 50,000. Next we, adjusted the component speeds such that there was not an absolutely massive buildup at each component, but enough of a buildup to see that the statistics (queue max, average, etc.) are working correctly. With these settings, inter arrival time, and duration, we also make it so the events recorded in the log (usually) aren’t coincidentally occurring on the same time unless they are supposed to (compared to a higher speed simulation set at a lower duration).

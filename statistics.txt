@@ -1,0 +1,40 @@
+EVENT HANDLER:
+========================
+Average Queue Size: 4.967760
+Maximum Queue Size: 6
+
+CPU:
+========================
+Average Queue Size: 61.882640
+Maximum Queue Size: 124
+Ulitilization: 0.995780
+Average Response Time: 464.305522
+Maximum Response Time: 907
+Throughput: 0.133280
+
+DISK1:
+========================
+Average Queue Size: 64.444500
+Maximum Queue Size: 163
+Ulitilization: 0.998300
+Average Response Time: 1923.716418
+Maximum Response Time: 4810
+Throughput: 0.033500
+
+DISK2:
+========================
+Average Queue Size: 64.867660
+Maximum Queue Size: 163
+Ulitilization: 0.998200
+Average Response Time: 1932.886174
+Maximum Response Time: 4425
+Throughput: 0.033560
+
+NETWORK:
+========================
+Average Queue Size: 10.639400
+Maximum Queue Size: 30
+Ulitilization: 0.974820
+Average Response Time: 326.562308
+Maximum Response Time: 935
+Throughput: 0.032580
